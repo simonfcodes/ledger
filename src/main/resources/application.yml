@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: ledger
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ledger
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  data:
+    jdbc:
+      dialect: postgresql
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: when_authorized
+
