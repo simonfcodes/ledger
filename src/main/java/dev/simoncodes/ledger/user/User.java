@@ -1,5 +1,6 @@
 package dev.simoncodes.ledger.user;
 
+import dev.simoncodes.ledger.common.encryption.EncryptedString;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
@@ -19,7 +20,7 @@ public class User {
     private String email;
     private String passwordHash;
     private boolean mfaEnabled;
-    private String mfaSecret;
+    private EncryptedString mfaSecret;
     private String[] mfaBackupCodes;
     private boolean emailVerified;
     @CreatedDate

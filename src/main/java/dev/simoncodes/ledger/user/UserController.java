@@ -1,5 +1,7 @@
 package dev.simoncodes.ledger.user;
 
+import dev.simoncodes.ledger.user.dto.RegRequestDto;
+import dev.simoncodes.ledger.user.dto.RegResponseDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

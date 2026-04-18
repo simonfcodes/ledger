@@ -1,4 +1,4 @@
-package dev.simoncodes.ledger.user;
+package dev.simoncodes.ledger.user.profile;
 
 import org.springframework.data.repository.CrudRepository;
 

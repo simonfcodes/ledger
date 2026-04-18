@@ -1,4 +1,4 @@
-package dev.simoncodes.ledger.user;
+package dev.simoncodes.ledger.user.dto;
 
 import java.util.UUID;
 
