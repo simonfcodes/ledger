@@ -35,7 +35,6 @@ public class AuthService {
     private final JwtService jwtSvc;
     private final RefreshTokenService refreshTokenSvc;
     private final TotpService totpSvc;
-    private final EncryptionService encryptionSvc;
     private final ConcurrentHashMap<String, MfaChallenge> mfaChallenges = new ConcurrentHashMap<>();
 
     private final SecureRandom random = new SecureRandom();

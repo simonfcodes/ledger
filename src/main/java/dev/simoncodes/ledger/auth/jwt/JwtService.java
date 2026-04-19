@@ -29,8 +29,6 @@ public class JwtService {
 
     private final JwtProperties jwtProps;
 
-    private RSAPrivateKey privateKey;
-    private RSAPublicKey publicKey;
     private RSASSASigner signer;
     private JWSVerifier verifier;
 
@@ -39,12 +37,12 @@ public class JwtService {
         try {
             String privatePem = Files.readString(Path.of(jwtProps.privateKeyPath()));
             RSAKey privateRsa = (RSAKey) JWK.parseFromPEMEncodedObjects(privatePem);
-            this.privateKey = privateRsa.toRSAPrivateKey();
+            RSAPrivateKey privateKey = privateRsa.toRSAPrivateKey();
             String publicPem = Files.readString(Path.of(jwtProps.publicKeyPath()));
             RSAKey publicRsa = (RSAKey) JWK.parseFromPEMEncodedObjects(publicPem);
-            this.publicKey = publicRsa.toRSAPublicKey();
-            this.signer = new RSASSASigner(this.privateKey);
-            this.verifier = new RSASSAVerifier(this.publicKey);
+            RSAPublicKey publicKey = publicRsa.toRSAPublicKey();
+            this.signer = new RSASSASigner(privateKey);
+            this.verifier = new RSASSAVerifier(publicKey);
         } catch (Exception e) {
             throw new JwtException("Failed to load RSA keys for JWT", e);
         }

@@ -1,5 +1,6 @@
 package dev.simoncodes.ledger.user;
 
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -14,7 +15,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     private final UserRepository userRepo;
 
-    public UserDetails loadUserByUsername(String id) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(@NonNull String id) throws UsernameNotFoundException {
         UUID userId = UUID.fromString(id);
         User u = userRepo.findById(userId).orElseThrow(() -> new UsernameNotFoundException("User with id not found: " + id));
         return new UserDetailsAdapter(u);

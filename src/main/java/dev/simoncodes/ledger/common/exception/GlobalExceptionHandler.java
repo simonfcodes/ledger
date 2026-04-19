@@ -1,7 +1,6 @@
 package dev.simoncodes.ledger.common.exception;
 
 import dev.simoncodes.ledger.auth.UnverifiedEmailException;
-import dev.simoncodes.ledger.auth.jwt.JwtException;
 import dev.simoncodes.ledger.auth.refresh.RefreshTokenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ControllerAdvice;

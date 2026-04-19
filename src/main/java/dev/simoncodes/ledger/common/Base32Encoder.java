@@ -5,7 +5,7 @@ import lombok.NonNull;
 public class Base32Encoder {
     private static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
-    public static String encode(@NonNull byte[] value) {
+    public static String encode(byte[] value) {
         StringBuilder result = new StringBuilder();
         int buffer = 0;
         int bitsInBuffer = 0;
