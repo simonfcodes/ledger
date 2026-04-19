@@ -25,6 +25,7 @@ public class EncryptionService {
 
     @PostConstruct
     public void init() {
+        System.out.println("Initializing encryption service..." + encryptionProps.key());
         byte[] keyBytes = Base64.getDecoder().decode(encryptionProps.key());
         this.secretKey = new SecretKeySpec(keyBytes, "AES");
     }

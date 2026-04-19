@@ -39,4 +39,4 @@ app:
     refresh-token-expiry: 604800000
     cookie-name: ledger-refresh-token
   encryption:
-    key: ${LEDGER_ENCRYPTION_KEY  }
+    key: ${LEDGER_ENCRYPTION_KEY}
