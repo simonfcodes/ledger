@@ -1,5 +1,6 @@
 package dev.simoncodes.ledger.auth;
 
+import dev.simoncodes.ledger.auth.device.TrustedDeviceService;
 import dev.simoncodes.ledger.auth.jwt.JwtService;
 import dev.simoncodes.ledger.auth.mfa.MfaChallenge;
 import dev.simoncodes.ledger.auth.mfa.MfaConfirmSetupResponse;
@@ -10,9 +11,9 @@ import dev.simoncodes.ledger.auth.refresh.RefreshTokenService;
 import dev.simoncodes.ledger.auth.totp.TotpService;
 import dev.simoncodes.ledger.common.Base32Encoder;
 import dev.simoncodes.ledger.common.encryption.EncryptedString;
-import dev.simoncodes.ledger.common.encryption.EncryptionService;
 import dev.simoncodes.ledger.user.User;
 import dev.simoncodes.ledger.user.UserRepository;
+import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,24 +36,31 @@ public class AuthService {
     private final JwtService jwtSvc;
     private final RefreshTokenService refreshTokenSvc;
     private final TotpService totpSvc;
+    private final TrustedDeviceService trustedDeviceSvc;
+
     private final ConcurrentHashMap<String, MfaChallenge> mfaChallenges = new ConcurrentHashMap<>();
 
     private final SecureRandom random = new SecureRandom();
 
-    public LoginResult login(String email, String password) {
+    public LoginResult login(String email, String password, @Nullable String deviceToken) {
         User user = userRepo.findByEmail(email).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
         boolean verified = encoder.matches(password, user.getPasswordHash());
         if (!verified) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         if (!user.isEmailVerified()) throw new UnverifiedEmailException(user.getEmail());
-
-        String challengeToken = Base32Encoder.encode(random.generateSeed(12));
+        if (deviceToken != null && user.isMfaEnabled()) {
+            boolean verifiedToken = trustedDeviceSvc.verifyTrustedDevice(user.getId(), deviceToken);
+            if (verifiedToken) {
+                String accessToken = jwtSvc.generateAccessToken(user.getId());
+                String refreshToken = refreshTokenSvc.createRefreshToken(user.getId());
+                return new LoginResult.Authenticated(accessToken, refreshToken);
+            }
+        }
+        byte[] challengeTokenBytes = new byte[32];
+        random.nextBytes(challengeTokenBytes);
+        String challengeToken = Base32Encoder.encode(challengeTokenBytes);
         mfaChallenges.put(challengeToken, new MfaChallenge(user.getId(), Instant.now().plusSeconds(300)));
 
-        return new LoginResult(
-                true,
-                !user.isMfaEnabled(),
-                challengeToken
-        );
+        return new LoginResult.MfaRequired(challengeToken, !user.isMfaEnabled());
     }
 
     public AuthTokenSet refresh(String refreshToken) {
@@ -62,7 +70,7 @@ public class AuthService {
         return new AuthTokenSet(newAccessToken, result.refreshToken());
     }
 
-    public AuthTokenSet completeMfaLogin(String token, String mfaCode) {
+    public AuthTokenSet completeMfaLogin(String token, String mfaCode, boolean trustDevice, @Nullable String deviceName) {
         User u = validateMfaTokenAndGetUser(token);
 
         if (!u.isMfaEnabled()) {
@@ -74,9 +82,14 @@ public class AuthService {
 
         mfaChallenges.remove(token);
 
+        String deviceToken = null;
+        if (trustDevice) {
+            deviceToken = trustedDeviceSvc.trustNewDevice(u.getId(), deviceName);
+        }
+
         String accessToken = jwtSvc.generateAccessToken(u.getId());
         String refreshToken = refreshTokenSvc.createRefreshToken(u.getId());
-        return new AuthTokenSet(accessToken, refreshToken);
+        return new AuthTokenSet(accessToken, refreshToken, deviceToken);
     }
 
     public MfaSetupResponse initiateMfaSetup(String token) {

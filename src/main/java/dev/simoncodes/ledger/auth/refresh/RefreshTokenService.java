@@ -1,5 +1,6 @@
 package dev.simoncodes.ledger.auth.refresh;
 
+import dev.simoncodes.ledger.common.TokenHashUtil;
 import dev.simoncodes.ledger.config.RefreshProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,9 +24,10 @@ public class RefreshTokenService {
     public String createRefreshToken(UUID uuid) {
         try {
 
-            byte[] randomToken = random.generateSeed(32);
+            byte[] randomToken = new byte[32];
+            random.nextBytes(randomToken);
             String returnToken = HexFormat.of().formatHex(randomToken);
-            String hashedToken = hashToken(returnToken);
+            String hashedToken = TokenHashUtil.hashToken(returnToken);
 
             RefreshToken refreshToken = new RefreshToken();
             refreshToken.setUserId(uuid);
@@ -56,7 +58,7 @@ public class RefreshTokenService {
     }
 
     public RefreshToken validateRefreshToken(String refreshToken) {
-        String hashedToken = hashToken(refreshToken);
+        String hashedToken = TokenHashUtil.hashToken(refreshToken);
         RefreshToken storedToken =  refreshRepo.findByTokenHash(hashedToken).orElseThrow(() -> new RefreshTokenException("Invalid refresh token"));
         if (tokenExpired(storedToken)) {
             throw new RefreshTokenException("Token has expired");
@@ -70,16 +72,5 @@ public class RefreshTokenService {
 
     private boolean tokenExpired(RefreshToken refreshToken) {
         return Instant.now().isAfter(refreshToken.getExpiresAt());
-    }
-
-    private String hashToken(String token) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] rawBytes = token.getBytes(StandardCharsets.UTF_8);
-            byte[] hashedTokenBytes = digest.digest(rawBytes);
-            return HexFormat.of().formatHex(hashedTokenBytes);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
     }
 }

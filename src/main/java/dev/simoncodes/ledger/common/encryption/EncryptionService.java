@@ -29,7 +29,8 @@ public class EncryptionService {
     }
 
     public String encrypt(String plainText) {
-        byte[] ivBytes = random.generateSeed(12);
+        byte[] ivBytes = new byte[12];
+        random.nextBytes(ivBytes);
         try {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             GCMParameterSpec gcmSpec = new GCMParameterSpec(128, ivBytes);
