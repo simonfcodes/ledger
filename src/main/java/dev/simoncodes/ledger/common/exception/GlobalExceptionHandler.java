@@ -3,11 +3,15 @@ package dev.simoncodes.ledger.common.exception;
 import dev.simoncodes.ledger.auth.UnverifiedEmailException;
 import dev.simoncodes.ledger.auth.refresh.RefreshTokenException;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -66,9 +70,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseBody
     public ErrorResponse handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
+        Map<String, String> fieldErrors = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .collect(Collectors.toMap(
+                        FieldError::getField,
+                        err -> err.getDefaultMessage() != null ? err.getDefaultMessage() : "invalid",
+                        (a, b) -> a
+                ));
         return new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage()
+                "Validation failed",
+                fieldErrors
         );
     }
 }

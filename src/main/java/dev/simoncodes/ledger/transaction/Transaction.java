@@ -33,7 +33,7 @@ public class Transaction {
     private String notes;
     private String description;
     private String reference;
-    private LocalDate postedAt;
+    private LocalDate postedDate;
     private UUID categoryId;
     private TransactionSource source;
     private String plaidTransactionId;
