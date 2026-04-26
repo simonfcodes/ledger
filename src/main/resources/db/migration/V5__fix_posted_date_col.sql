@@ -1,0 +1,1 @@
+ALTER TABLE transactions RENAME COLUMN posted_at TO posted_date;
