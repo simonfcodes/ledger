@@ -3,6 +3,7 @@ package dev.simoncodes.ledger.common.exception;
 import dev.simoncodes.ledger.auth.UnverifiedEmailException;
 import dev.simoncodes.ledger.auth.refresh.RefreshTokenException;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -47,6 +48,26 @@ public class GlobalExceptionHandler {
     public ErrorResponse handleRefreshTokenException(RefreshTokenException ex) {
         return new ErrorResponse(
                 HttpStatus.UNAUTHORIZED.value(),
+                ex.getMessage()
+        );
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseBody
+    public ErrorResponse handleIllegalArgumentException(IllegalArgumentException ex) {
+        return new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage()
+        );
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseBody
+    public ErrorResponse handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
+        return new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
                 ex.getMessage()
         );
     }

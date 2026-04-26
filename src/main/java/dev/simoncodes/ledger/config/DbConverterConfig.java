@@ -13,12 +13,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DbConverterConfig extends AbstractJdbcConfiguration {
 
-    private final EncryptedStringToStringConverter writingConverter;
-    private final StringToEncryptedStringConverter readingConverter;
+    private final EncryptedStringToStringConverter encryptedWritingConverter;
+    private final StringToEncryptedStringConverter encryptedReadingConverter;
 
     @Override
     @NonNull
     protected List<?> userConverters() {
-        return List.of(writingConverter, readingConverter);
+        return List.of(
+                encryptedWritingConverter,
+                encryptedReadingConverter
+        );
     }
 }

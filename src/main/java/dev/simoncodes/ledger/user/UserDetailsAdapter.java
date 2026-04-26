@@ -6,6 +6,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 public class UserDetailsAdapter implements UserDetails {
@@ -14,6 +15,10 @@ public class UserDetailsAdapter implements UserDetails {
 
     public UserDetailsAdapter(User u) {
         this.user = u;
+    }
+
+    public UUID getUserId() {
+        return UUID.fromString(user.getId().toString());
     }
 
     @NonNull

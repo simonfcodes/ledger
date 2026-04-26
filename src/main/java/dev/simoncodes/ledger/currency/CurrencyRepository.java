@@ -1,11 +1,11 @@
 package dev.simoncodes.ledger.currency;
 
-import org.springframework.data.repository.Repository;
+import dev.simoncodes.ledger.common.ReadOnlyRepository;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface CurrencyRepository extends Repository<Currency, String> {
+public interface CurrencyRepository extends ReadOnlyRepository<Currency, String> {
 
     Optional<Currency> findByCode(String s);
 

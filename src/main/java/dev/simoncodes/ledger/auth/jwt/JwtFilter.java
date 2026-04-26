@@ -32,17 +32,19 @@ public class JwtFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7);
         try {
             UUID userId = jwtSvc.validateAccessToken(token);
-            String id = userId.toString();
+
 
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails user = userDetailsSvc.loadUserByUsername(id);
+                UserDetails user = userDetailsSvc.loadUserByUsername(userId.toString());
 
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                System.out.println("JwtFilter: set auth, principal type = "
+                        + authToken.getPrincipal().getClass().getName());
             }
         } catch (Exception e) {
-            filterChain.doFilter(request, response);
+            // Log the issue and move on.
         }
         filterChain.doFilter(request, response);
     }

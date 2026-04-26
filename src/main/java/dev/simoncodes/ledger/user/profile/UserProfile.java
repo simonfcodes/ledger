@@ -2,7 +2,9 @@ package dev.simoncodes.ledger.user.profile;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
@@ -20,6 +22,8 @@ public class UserProfile {
     private String timezone;
     private String dateFormat;
     private String numberFormat;
+    @CreatedDate
     private Instant createdAt;
+    @LastModifiedDate
     private Instant updatedAt;
 }
