@@ -8,12 +8,14 @@ import dev.simoncodes.ledger.currency.CurrencyRepository;
 import dev.simoncodes.ledger.institution.InstitutionRepository;
 import dev.simoncodes.ledger.transaction.TransactionService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AccountService {
@@ -48,7 +50,9 @@ public class AccountService {
         Account newAcct = AccountMapper.toEntity(userId, request);
         newAcct.setDisplayOrder(displayOrder);
         Account savedAcct = accountRepo.save(newAcct);
+        log.info("Created {} account for user: {} with id: {}", request.currencyCode(), userId, savedAcct.getId());
         transactionService.createOpeningBalance(savedAcct.getId(), request.openingBalance(), request.currencyCode());
+        log.info("Set opening balance at {} for account with id: {}", request.openingBalance().toString(), savedAcct.getId());
         Account finalAcct = accountRepo.findById(savedAcct.getId()).orElseThrow(() -> new IllegalStateException("Failed to retrieve account that should have already been created and saved to the database with id: " + savedAcct.getId()));
         return AccountMapper.toView(finalAcct);
     }
