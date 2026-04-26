@@ -2,7 +2,6 @@ package dev.simoncodes.ledger.account.dto;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import dev.simoncodes.ledger.account.AccountType;
 
 import java.math.BigDecimal;
 import java.util.UUID;

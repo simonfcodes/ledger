@@ -1,6 +1,5 @@
 package dev.simoncodes.ledger.account.dto;
 
-import dev.simoncodes.ledger.account.AccountType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;

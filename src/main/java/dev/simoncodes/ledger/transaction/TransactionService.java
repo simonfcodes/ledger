@@ -42,6 +42,6 @@ public class TransactionService {
         if (rows != 1) {
             throw new IllegalStateException("Failed to update account with ID " + accountId + " with an opening balance.");
         }
-        return t;
+        return saved;
     }
 }
