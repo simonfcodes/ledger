@@ -41,4 +41,8 @@ public class Transaction {
     private Instant createdAt;
     @LastModifiedDate
     private Instant updatedAt;
+
+    public BigDecimal signedAmount() {
+        return direction == TransactionType.CREDIT ? amount : amount.negate();
+    }
 }

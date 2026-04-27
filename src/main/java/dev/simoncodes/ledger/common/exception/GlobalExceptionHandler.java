@@ -2,6 +2,7 @@ package dev.simoncodes.ledger.common.exception;
 
 import dev.simoncodes.ledger.auth.UnverifiedEmailException;
 import dev.simoncodes.ledger.auth.refresh.RefreshTokenException;
+import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -82,6 +83,16 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST.value(),
                 "Validation failed",
                 fieldErrors
+        );
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(BadRequestException.class)
+    @ResponseBody
+    public ErrorResponse handleBadRequestException(BadRequestException ex) {
+        return new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage()
         );
     }
 }

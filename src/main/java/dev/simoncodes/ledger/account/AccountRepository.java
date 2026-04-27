@@ -19,4 +19,7 @@ public interface AccountRepository extends CrudRepository<Account, UUID> {
     Integer findMaxDisplayOrderByUserId(@Param("userId") UUID userId);
 
     List<Account> findByUserIdOrderByDisplayOrder(UUID userId);
+
+    @Query("SELECT CASE WHEN COUNT(A) > 0 THEN TRUE ELSE FALSE END FROM accounts A WHERE id = :id AND user_id = :userId")
+    boolean existsByIdAndUserId(UUID id, UUID userId);
 }

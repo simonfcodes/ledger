@@ -25,9 +25,6 @@ public class AccountController {
             @AuthenticationPrincipal UserDetailsAdapter principal,
             @Valid @RequestBody CreateAccountRequest req
     ) {
-        System.out.println("Controller: principal = " + principal);
-        System.out.println("Controller: context auth = "
-                + SecurityContextHolder.getContext().getAuthentication());
         return accountSvc.createAccount(principal.getUserId(), req);
     }
 

@@ -13,8 +13,6 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public record CreateTransactionRequest(
-        @NotNull(message = "An accountId must be provided to create a transaction")
-        UUID accountId,
         @NotNull(message = "An amount must be provided to create a transaction")
         @DecimalMin(value = "0.01", message = "A transaction cannot be created for an amount less than 0.01")
         BigDecimal amount,
