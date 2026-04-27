@@ -7,13 +7,20 @@ import dev.simoncodes.ledger.common.exception.ConflictException;
 import dev.simoncodes.ledger.common.exception.ResourceNotFoundException;
 import dev.simoncodes.ledger.currency.CurrencyRepository;
 import dev.simoncodes.ledger.transaction.dto.CreateTransactionRequest;
+import dev.simoncodes.ledger.transaction.dto.TransactionListRequest;
+import dev.simoncodes.ledger.transaction.pagination.CursorCodec;
+import dev.simoncodes.ledger.transaction.pagination.TransactionCursor;
+import dev.simoncodes.ledger.transaction.view.TransactionListView;
+import dev.simoncodes.ledger.transaction.view.TransactionView;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -25,6 +32,45 @@ public class TransactionService {
     private final AccountRepository accountRepo;
     private final CurrencyRepository currencyRepo;
     private final CategoryRepository categoryRepo;
+    private final CursorCodec cursorCodec;
+
+    public TransactionListView listTransactions(UUID userId, UUID accountId, TransactionListRequest req) {
+        verifyAccountOwnership(userId, accountId);
+
+        TransactionCursor cursor = req.cursor() == null ? null : cursorCodec.decode(req.cursor());
+        LocalDate cursorDate = cursor != null ? cursor.transactionDate() : null;
+        Instant cursorCreatedAt = cursor != null ? cursor.createdAt() : null;
+        UUID cursorId = cursor != null ? cursor.id() : null;
+
+        List<Transaction> rows = txRepo.findPage(
+                accountId,
+                cursorDate, cursorCreatedAt, cursorId,
+                req.fromDate(), req.toDate(), req.direction(), req.categoryId(),
+                req.size() + 1
+        );
+
+        boolean hasMore = rows.size() > req.size();
+        List<Transaction> page = hasMore ? rows.subList(0, req.size()) : rows;
+
+        String nextCursor = null;
+
+        if (hasMore) {
+            Transaction last = page.getLast();
+            nextCursor = cursorCodec.encode(new TransactionCursor(
+                    last.getTransactionDate(),
+                    last.getCreatedAt(),
+                    last.getId()
+            ));
+        }
+
+        log.info("Listed {} transactions for account {} (hasMore={})", page.size(), accountId, hasMore);
+
+        return new TransactionListView(
+                page.stream().map(TransactionView::fromTransaction).toList(),
+                nextCursor,
+                hasMore
+        );
+    }
 
     @Transactional
     public Transaction createTransaction(UUID userId, UUID accountId, CreateTransactionRequest req) {
@@ -102,9 +148,7 @@ public class TransactionService {
 
     @Transactional(readOnly = true)
     public Transaction getTransaction(UUID userId, UUID accountId, UUID txId) {
-        if (!accountRepo.existsByIdAndUserId(accountId, userId)) {
-            throw new ResourceNotFoundException("Account not found with id: " + accountId);
-        }
+        verifyAccountOwnership(userId, accountId);
         return txRepo.findByIdAndAccountId(txId, accountId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction not found with id: " + txId));
     }
@@ -114,4 +158,11 @@ public class TransactionService {
                 .filter(a -> a. getUserId().equals(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId));
     }
+
+    private void verifyAccountOwnership(UUID userId, UUID accountId) {
+        if (!accountRepo.existsByIdAndUserId(accountId, userId)) {
+            throw new ResourceNotFoundException("Account not found with id: " + accountId);
+        }
+    }
+
 }
