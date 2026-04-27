@@ -2,7 +2,7 @@ package dev.simoncodes.ledger.common.exception;
 
 import dev.simoncodes.ledger.auth.UnverifiedEmailException;
 import dev.simoncodes.ledger.auth.refresh.RefreshTokenException;
-import org.apache.coyote.BadRequestException;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -58,16 +59,6 @@ public class GlobalExceptionHandler {
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler(IllegalArgumentException.class)
-    @ResponseBody
-    public ErrorResponse handleIllegalArgumentException(IllegalArgumentException ex) {
-        return new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage()
-        );
-    }
-
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseBody
     public ErrorResponse handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
@@ -93,6 +84,40 @@ public class GlobalExceptionHandler {
         return new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
                 ex.getMessage()
+        );
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseBody
+    public ErrorResponse handleConstraintViolationException(ConstraintViolationException ex) {
+        Map<String, String> constraintErrors = ex.getConstraintViolations()
+                .stream()
+                .collect(Collectors.toMap(
+                        violation -> violation.getPropertyPath().toString(),
+                        violation -> violation.getMessage() != null ? violation.getMessage() : "invalid",
+                        (a, b) -> a
+                ));
+        return new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Constraint Validation failed",
+                constraintErrors
+        );
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    @ResponseBody
+    public ErrorResponse handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
+        String typeName = ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "valid value";
+
+        Map<String, String> mismatchError = Map.of(
+                ex.getName(), "Expected type: " + typeName
+        );
+        return new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Method argument type mismatch",
+                mismatchError
         );
     }
 }
