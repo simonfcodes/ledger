@@ -3,7 +3,6 @@ package dev.simoncodes.ledger.transaction;
 import dev.simoncodes.ledger.account.entity.Account;
 import dev.simoncodes.ledger.common.StringUtils;
 import dev.simoncodes.ledger.transaction.dto.CreateTransactionRequest;
-import dev.simoncodes.ledger.transaction.dto.UpdateTransactionRequest;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
