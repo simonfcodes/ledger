@@ -3,11 +3,13 @@ package dev.simoncodes.ledger.transaction;
 import dev.simoncodes.ledger.account.AccountRepository;
 import dev.simoncodes.ledger.account.entity.Account;
 import dev.simoncodes.ledger.category.CategoryRepository;
+import dev.simoncodes.ledger.common.StringUtils;
 import dev.simoncodes.ledger.common.exception.ConflictException;
 import dev.simoncodes.ledger.common.exception.ResourceNotFoundException;
 import dev.simoncodes.ledger.currency.CurrencyRepository;
 import dev.simoncodes.ledger.transaction.dto.CreateTransactionRequest;
 import dev.simoncodes.ledger.transaction.dto.TransactionListRequest;
+import dev.simoncodes.ledger.transaction.dto.UpdateTransactionRequest;
 import dev.simoncodes.ledger.transaction.pagination.CursorCodec;
 import dev.simoncodes.ledger.transaction.pagination.TransactionCursor;
 import dev.simoncodes.ledger.transaction.view.TransactionListView;
@@ -72,80 +74,6 @@ public class TransactionService {
         );
     }
 
-    @Transactional
-    public Transaction createTransaction(UUID userId, UUID accountId, CreateTransactionRequest req) {
-        Account account = getAccount(userId, accountId);
-        if (!account.isActive()) {
-            log.warn("Attempted transaction on an inactive account with id: {}", accountId);
-            throw new ConflictException("Account is inactive: " + account.getId());
-        }
-        if (req.categoryId() != null && !categoryRepo.existsByIdAndUserId(req.categoryId(), userId)) {
-            log.warn("Attempted transaction with unsupported category id: {}", req.categoryId());
-            throw new ResourceNotFoundException("Category not found with id: " + req.categoryId());
-        }
-        if (req.originalCurrencyCode() != null && !currencyRepo.existsById(req.originalCurrencyCode())) {
-            log.warn("Attempted transaction with unsupported currency code: {}", req.originalCurrencyCode());
-            throw new ResourceNotFoundException("Currency not found with id: " + req.originalCurrencyCode());
-        }
-
-        Transaction t = new Transaction();
-        t.setAccountId(account.getId());
-        t.setAmount(req.amount());
-        t.setDirection(req.direction());
-        t.setCurrencyCode(account.getCurrencyCode());
-        t.setTransactionDate(req.transactionDate());
-        t.setDescription(req.description());
-        t.setReference(req.reference());
-        t.setPostedDate(req.postedDate());
-        t.setCategoryId(req.categoryId());
-        t.setNotes(req.notes());
-        t.setSource(TransactionSource.MANUAL);
-        t.setOriginalAmount(req.originalAmount() == null ? req.amount() : req.originalAmount());
-        t.setOriginalCurrencyCode(req.originalCurrencyCode() == null ? account.getCurrencyCode() : req.originalCurrencyCode());
-        t.setRecurring(false);
-
-        BigDecimal delta = t.signedAmount();
-        Transaction saved = txRepo.save(t);
-        log.info("Created transaction with id: {}", saved.getId());
-        int rows = accountRepo.adjustBalance(account.getId(), delta);
-        if (rows != 1) {
-            log.warn("Failed to adjust balance for account with id: {}", account.getId());
-            throw new IllegalStateException("Failed to adjust balance for account with id: " + account.getId());
-        }
-        log.info("Balance adjusted for account with id: {} due to transaction with id: {}", account.getId(), saved.getId());
-        return saved;
-
-    }
-
-    @Transactional
-    public Transaction createOpeningBalance(UUID accountId, BigDecimal openingBalance, String currencyCode) {
-        Transaction t = new Transaction();
-        TransactionType direction = openingBalance.signum() >= 0 ? TransactionType.CREDIT : TransactionType.DEBIT;
-        BigDecimal amount = openingBalance.abs();
-
-        t.setAccountId(accountId);
-        t.setAmount(amount);
-        t.setDirection(direction);
-        t.setCurrencyCode(currencyCode);
-        t.setTransactionDate(LocalDate.now());
-        t.setOriginalAmount(amount);
-        t.setOriginalCurrencyCode(currencyCode);
-        t.setRecurring(false);
-        t.setDescription("Opening Balance");
-        t.setNotes(null);
-        t.setReference(null);
-        t.setPostedDate(null);
-        t.setCategoryId(null);
-        t.setSource(TransactionSource.OPENING_BALANCE);
-        Transaction saved = txRepo.save(t);
-
-        int rows = accountRepo.adjustBalance(accountId, openingBalance);
-        if (rows != 1) {
-            throw new IllegalStateException("Failed to update account with ID " + accountId + " with an opening balance.");
-        }
-        return saved;
-    }
-
     @Transactional(readOnly = true)
     public Transaction getTransaction(UUID userId, UUID accountId, UUID txId) {
         verifyAccountOwnership(userId, accountId);
@@ -153,10 +81,93 @@ public class TransactionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction not found with id: " + txId));
     }
 
-    private Account getAccount(UUID userId, UUID accountId) {
-        return accountRepo.findById(accountId)
+    @Transactional
+    public Transaction createTransaction(UUID userId, UUID accountId, CreateTransactionRequest req) {
+        Account account = loadAccountAndValidate(userId, accountId);
+        validateCategoryAndCurrency(userId, req.categoryId(), req.originalCurrencyCode());
+        Transaction t = TransactionFactory.fromCreateRequest(req, account);
+        Transaction saved = persistWithBalanceDelta(t, t.signedAmount());
+        log.info("Created new transaction with id: {}", saved.getId());
+        return saved;
+    }
+
+    @Transactional
+    public Transaction createOpeningBalance(UUID accountId, BigDecimal openingBalance, String currencyCode) {
+        Transaction t = TransactionFactory.fromOpeningBalance(accountId, openingBalance, currencyCode);
+        Transaction saved = persistWithBalanceDelta(t, openingBalance);
+        log.info("Created opening balance transaction with id: {}", saved.getId());
+        return saved;
+    }
+
+    @Transactional
+    public Transaction updateTransaction(UUID userId, UUID accountId, UUID txId, UpdateTransactionRequest req) {
+        Account account = loadAccountAndValidate(userId, accountId);
+        Transaction tx = txRepo.findByIdAndAccountId(txId, accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found with id: " + txId));
+        // TODO: loosen to per-field check
+        //       — description/notes/category should be editable on opening balance
+
+        if (tx.getSource() == TransactionSource.OPENING_BALANCE) {
+            throw new ConflictException("Cannot update an opening balance transaction: " + txId);
+        }
+        validateCategoryAndCurrency(userId, req.categoryId(), req.originalCurrencyCode());
+        BigDecimal oldSignedAmount = tx.signedAmount();
+
+        tx.setAmount(req.amount());
+        tx.setDirection(req.direction());
+        tx.setTransactionDate(req.transactionDate());
+        tx.setDescription(StringUtils.nullIfBlank(req.description()));
+        tx.setReference(StringUtils.nullIfBlank(req.reference()));
+        tx.setNotes(StringUtils.nullIfBlank(req.notes()));
+        tx.setPostedDate(req.postedDate());
+        tx.setCategoryId(req.categoryId());
+        tx.setOriginalAmount(req.originalAmount() == null ? req.amount() : req.originalAmount());
+        tx.setOriginalCurrencyCode(req.originalCurrencyCode() == null ? account.getCurrencyCode() : req.originalCurrencyCode());
+
+        BigDecimal delta = tx.signedAmount().subtract(oldSignedAmount);
+        Transaction saved = persistWithBalanceDelta(tx, delta);
+        log.info("Updated transaction with id: {}", saved.getId());
+        return saved;
+    }
+
+    @Transactional
+    public void deleteTransaction(UUID userId, UUID accountId, UUID txId) {
+        loadAccountAndValidate(userId, accountId);
+        Transaction tx = txRepo.findByIdAndAccountId(txId, accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found with id: " + txId));
+        if (tx.getSource() == TransactionSource.OPENING_BALANCE) {
+            throw new ConflictException("Cannot delete an opening balance transaction: " + txId);
+        }
+        BigDecimal reversal = tx.signedAmount().negate();
+        txRepo.deleteById(txId);
+        int rows = accountRepo.adjustBalance(accountId, reversal);
+        if (rows != 1) {
+            log.warn("Failed to adjust balance for account with id: {}", accountId);
+            throw new IllegalStateException("Failed to adjust balance for account with id: " + accountId);
+        }
+        log.info("Deleted transaction with id: {}", txId);
+    }
+
+    private void validateCategoryAndCurrency(UUID userId, UUID categoryId, String originalCurrencyCode) {
+        if (categoryId != null && !categoryRepo.existsByIdAndUserId(categoryId, userId)) {
+            log.warn("Attempted transaction with unsupported category id: {}", categoryId);
+            throw new ResourceNotFoundException("Category not found with id: " + categoryId);
+        }
+        if (originalCurrencyCode != null && !currencyRepo.existsById(originalCurrencyCode)) {
+            log.warn("Attempted transaction with unsupported currency code: {}", originalCurrencyCode);
+            throw new ResourceNotFoundException("Currency not found with id: " + originalCurrencyCode);
+        }
+    }
+
+    private Account loadAccountAndValidate(UUID userId, UUID accountId) {
+        Account account = accountRepo.findById(accountId)
                 .filter(a -> a. getUserId().equals(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId));
+        if (!account.isActive()) {
+            log.warn("Attempted transaction on an inactive account with id: {}", account.getId());
+            throw new ConflictException("Account is inactive: " + account.getId());
+        }
+        return account;
     }
 
     private void verifyAccountOwnership(UUID userId, UUID accountId) {
@@ -165,4 +176,13 @@ public class TransactionService {
         }
     }
 
+    private Transaction persistWithBalanceDelta(Transaction t, BigDecimal delta) {
+        Transaction saved = txRepo.save(t);
+        int rows = accountRepo.adjustBalance(t.getAccountId(), delta);
+        if (rows != 1) {
+            log.warn("Failed to adjust balance for account with id: {}", t.getAccountId());
+            throw new IllegalStateException("Failed to adjust balance for account with id: " + t.getAccountId());
+        }
+        return saved;
+    }
 }

@@ -2,6 +2,7 @@ package dev.simoncodes.ledger.transaction;
 
 import dev.simoncodes.ledger.transaction.dto.CreateTransactionRequest;
 import dev.simoncodes.ledger.transaction.dto.TransactionListRequest;
+import dev.simoncodes.ledger.transaction.dto.UpdateTransactionRequest;
 import dev.simoncodes.ledger.transaction.view.TransactionListView;
 import dev.simoncodes.ledger.transaction.view.TransactionView;
 import dev.simoncodes.ledger.user.UserDetailsAdapter;
@@ -35,6 +36,27 @@ public class TransactionController {
     @ResponseStatus(HttpStatus.OK)
     public TransactionView getTransaction(@AuthenticationPrincipal UserDetailsAdapter principal, @PathVariable UUID accountId, @PathVariable UUID txId) {
         return TransactionView.fromTransaction(txSvc.getTransaction(principal.getUserId(), accountId, txId));
+    }
+
+    @PutMapping("/{txId}")
+    @ResponseStatus(HttpStatus.OK)
+    public TransactionView updateTransaction(
+            @AuthenticationPrincipal UserDetailsAdapter principal,
+            @PathVariable UUID accountId,
+            @PathVariable UUID txId,
+            @Valid @RequestBody UpdateTransactionRequest req
+    ) {
+        return TransactionView.fromTransaction(txSvc.updateTransaction(principal.getUserId(), accountId, txId, req));
+    }
+
+    @DeleteMapping("/{txId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteTransaction(
+            @AuthenticationPrincipal UserDetailsAdapter principal,
+            @PathVariable UUID accountId,
+            @PathVariable UUID txId
+    ) {
+        txSvc.deleteTransaction(principal.getUserId(), accountId, txId);
     }
 
     @GetMapping
