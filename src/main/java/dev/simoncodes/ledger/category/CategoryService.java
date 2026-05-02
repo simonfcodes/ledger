@@ -1,7 +1,6 @@
 package dev.simoncodes.ledger.category;
 
 import dev.simoncodes.ledger.category.dto.CategoryRequest;
-import dev.simoncodes.ledger.category.view.CategoryView;
 import dev.simoncodes.ledger.common.exception.BadRequestException;
 import dev.simoncodes.ledger.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j

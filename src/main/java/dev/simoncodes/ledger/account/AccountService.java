@@ -8,7 +8,6 @@ import dev.simoncodes.ledger.common.exception.ResourceNotFoundException;
 import dev.simoncodes.ledger.currency.CurrencyRepository;
 import dev.simoncodes.ledger.institution.InstitutionRepository;
 import dev.simoncodes.ledger.transaction.TransactionService;
-import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;

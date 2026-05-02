@@ -1,6 +1,5 @@
 package dev.simoncodes.ledger.account.dto;
 
-import tools.jackson.databind.annotation.JsonTypeResolver;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 

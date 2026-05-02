@@ -20,7 +20,7 @@ public interface CategoryRepository extends CrudRepository<Category, UUID> {
             uhc.category_id IS NOT NULL AS hidden
         FROM categories c
         LEFT JOIN user_hidden_category uhc ON (c.id = uhc.category_id AND uhc.user_id = :userId)
-        WHERE (c.id = :categoryId) 
+        WHERE (c.id = :categoryId)
           AND (c.user_id IS NULL OR c.user_id = :userId)
         
 """)

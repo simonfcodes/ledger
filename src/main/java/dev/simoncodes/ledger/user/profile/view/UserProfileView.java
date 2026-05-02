@@ -1,5 +1,7 @@
 package dev.simoncodes.ledger.user.profile.view;
 
+import dev.simoncodes.ledger.common.format.DateFormat;
+import dev.simoncodes.ledger.common.format.NumberFormat;
 import dev.simoncodes.ledger.user.profile.UserProfile;
 
 import java.time.Instant;
@@ -10,8 +12,8 @@ public record UserProfileView(
         String displayName,
         String baseCurrencyCode,
         String timezone,
-        String dateFormat,
-        String numberFormat,
+        DateFormat dateFormat,
+        NumberFormat numberFormat,
         Instant createdAt,
         Instant updatedAt
 ) {
