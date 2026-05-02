@@ -3,6 +3,7 @@ package dev.simoncodes.ledger.account;
 import dev.simoncodes.ledger.account.dto.*;
 import dev.simoncodes.ledger.account.entity.*;
 import dev.simoncodes.ledger.account.view.*;
+import dev.simoncodes.ledger.common.exception.BadRequestException;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -24,33 +25,33 @@ class AccountMapper {
             case CreateCurrentAccountRequest r -> {
                 a.setType(AccountType.CURRENT);
                 CurrentAccountDetails d = new CurrentAccountDetails();
-                d.setOverdraftLimit(r.overdraftLimit() == null ? BigDecimal.ZERO : r.overdraftLimit());
+                d.setOverdraftLimit(r.overdraftLimit());
                 a.setCurrentAccountDetails(d);
             }
             case CreateSavingsAccountRequest r -> {
                 a.setType(AccountType.SAVINGS);
                 SavingsDetails d = new SavingsDetails();
-                d.setInterestRate(r.interestRate() == null ? BigDecimal.ZERO : r.interestRate());
+                d.setInterestRate(r.interestRate());
                 a.setSavingsDetails(d);
             }
             case CreateCreditCardAccountRequest r -> {
                 a.setType(AccountType.CREDIT_CARD);
                 CreditCardDetails d = new CreditCardDetails();
                 d.setCreditLimit(r.creditLimit());
-                d.setApr(r.apr() == null ? BigDecimal.ZERO : r.apr());
-                d.setLastStatementBalance(r.lastStatementBalance() == null ? BigDecimal.ZERO : r.lastStatementBalance());
+                d.setApr(r.apr());
+                d.setLastStatementBalance(r.lastStatementBalance());
                 d.setLastStatementDate(r.lastStatementDate());
                 d.setNextPaymentDueDate(r.nextPaymentDueDate());
-                d.setNextPaymentAmount(r.nextPaymentAmount() == null ? BigDecimal.ZERO : r.nextPaymentAmount());
+                d.setNextPaymentAmount(r.nextPaymentAmount());
                 a.setCreditCardDetails(d);
             }
             case CreateLoanAccountRequest r -> {
                 a.setType(AccountType.LOAN);
                 LoanDetails d = new LoanDetails();
                 d.setLoanAmount(r.loanAmount());
-                d.setInterestRate(r.interestRate() == null ? BigDecimal.ZERO : r.interestRate());
-                d.setTermMonths(r.termMonths() == null ? 0 : r.termMonths());
-                d.setMonthlyPayment(r.monthlyPayment() == null ? BigDecimal.ZERO : r.monthlyPayment());
+                d.setInterestRate(r.interestRate());
+                d.setTermMonths(r.termMonths());
+                d.setMonthlyPayment(r.monthlyPayment());
                 a.setLoanDetails(d);
             }
         }
@@ -125,10 +126,53 @@ class AccountMapper {
         };
     }
 
+    static void applyUpdate(Account account, UpdateAccountRequest request) {
+        account.setName(request.name());
+        account.setDisplayOrder(request.displayOrder());
+        account.setActive(request.active());
+
+        switch (request) {
+            case UpdateCurrentAccountRequest r -> {
+                requireType(account, AccountType.CURRENT);
+                CurrentAccountDetails d = requireDetails(account.getCurrentAccountDetails(), AccountType.CURRENT, account.getId());
+                d.setOverdraftLimit(r.overdraftLimit());
+            }
+            case UpdateSavingsAccountRequest r -> {
+                requireType(account, AccountType.SAVINGS);
+                SavingsDetails d = requireDetails(account.getSavingsDetails(), AccountType.SAVINGS, account.getId());
+                d.setInterestRate(r.interestRate());
+            }
+            case UpdateCreditCardAccountRequest r -> {
+                requireType(account, AccountType.CREDIT_CARD);
+                CreditCardDetails d = requireDetails(account.getCreditCardDetails(), AccountType.CREDIT_CARD, account.getId());
+                d.setCreditLimit(r.creditLimit());
+                d.setApr(r.apr());
+                d.setLastStatementBalance(r.lastStatementBalance());
+                d.setLastStatementDate(r.lastStatementDate());
+                d.setNextPaymentDueDate(r.nextPaymentDueDate());
+                d.setNextPaymentAmount(r.nextPaymentAmount());
+            }
+            case UpdateLoanAccountRequest r -> {
+                requireType(account, AccountType.LOAN);
+                LoanDetails d = requireDetails(account.getLoanDetails(), AccountType.LOAN, account.getId());
+                d.setLoanAmount(r.loanAmount());
+                d.setInterestRate(r.interestRate());
+                d.setTermMonths(r.termMonths());
+                d.setMonthlyPayment(r.monthlyPayment());
+            }
+        }
+    }
+
     private static <T> T requireDetails(T details, AccountType type, UUID id) {
         if (details == null) {
             throw new IllegalStateException("Account with ID " + id + " has type " + type + " but no associated details.");
         }
         return details;
+    }
+
+    private static void requireType(Account a, AccountType at) {
+        if (a.getType() != at) {
+            throw new BadRequestException("Account with ID " + a.getId() + " has type " + a.getType() + " but expected type was " + at);
+        }
     }
 }

@@ -2,26 +2,19 @@ package dev.simoncodes.ledger.account.dto;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.UUID;
 
-public record CreateCreditCardAccountRequest(
-        @NotNull
-        UUID institutionId,
+public record UpdateCreditCardAccountRequest(
         @NotNull
         @Size(min=1, max=255)
         String name,
         @NotNull
-        @Pattern(regexp="[A-Z]{3}")
-        String currencyCode,
+        Boolean active,
         @NotNull
-        @Pattern(regexp="[A-Z]{2}")
-        String countryCode,
-        BigDecimal openingBalance,
+        Integer displayOrder,
         @NotNull
         @DecimalMin("0.00")
         BigDecimal creditLimit,
@@ -33,5 +26,5 @@ public record CreateCreditCardAccountRequest(
         LocalDate nextPaymentDueDate,
         @DecimalMin("0.00")
         BigDecimal nextPaymentAmount
-) implements CreateAccountRequest {
+) implements UpdateAccountRequest {
 }

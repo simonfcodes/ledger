@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface AccountRepository extends CrudRepository<Account, UUID> {
@@ -20,6 +21,10 @@ public interface AccountRepository extends CrudRepository<Account, UUID> {
 
     List<Account> findByUserIdOrderByDisplayOrder(UUID userId);
 
+    Optional<Account> findByIdAndUserId(UUID id, UUID userId);
+
     @Query("SELECT CASE WHEN COUNT(A) > 0 THEN TRUE ELSE FALSE END FROM accounts A WHERE id = :id AND user_id = :userId")
     boolean existsByIdAndUserId(UUID id, UUID userId);
+
+    int deleteByIdAndUserId(UUID id, UUID userId);
 }

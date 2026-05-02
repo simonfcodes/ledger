@@ -1,6 +1,7 @@
 package dev.simoncodes.ledger.account;
 
 import dev.simoncodes.ledger.account.dto.CreateAccountRequest;
+import dev.simoncodes.ledger.account.dto.UpdateAccountRequest;
 import dev.simoncodes.ledger.account.view.AccountView;
 import dev.simoncodes.ledger.user.UserDetailsAdapter;
 import jakarta.validation.Valid;
@@ -41,5 +42,24 @@ public class AccountController {
             @AuthenticationPrincipal UserDetailsAdapter principal
     ) {
         return accountSvc.listAccounts(principal.getUserId());
+    }
+
+    @PutMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public AccountView updateAccount(
+            @AuthenticationPrincipal UserDetailsAdapter principal,
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateAccountRequest req
+    ) {
+        return accountSvc.updateAccount(principal.getUserId(), id, req);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAccount(
+            @AuthenticationPrincipal UserDetailsAdapter principal,
+            @PathVariable UUID id
+    ) {
+        accountSvc.deleteAccount(principal.getUserId(), id);
     }
 }
