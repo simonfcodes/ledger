@@ -1,5 +1,7 @@
 package dev.simoncodes.ledger.user.profile;
 
+import dev.simoncodes.ledger.common.format.DateFormat;
+import dev.simoncodes.ledger.common.format.NumberFormat;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
@@ -20,8 +22,8 @@ public class UserProfile {
     private String displayName;
     private String baseCurrencyCode;
     private String timezone;
-    private String dateFormat;
-    private String numberFormat;
+    private DateFormat dateFormat;
+    private NumberFormat numberFormat;
     @CreatedDate
     private Instant createdAt;
     @LastModifiedDate
