@@ -17,7 +17,8 @@ public class Category {
     @Id
     private UUID id;
     private UUID userId;
-    private String name;
+    private String displayName;
+    private String code;
     private UUID parentId;
     private String color;
     private String icon;
